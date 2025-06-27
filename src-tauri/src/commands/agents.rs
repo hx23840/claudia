@@ -1849,7 +1849,7 @@ pub async fn get_claude_binary_path(db: State<'_, AgentDb>) -> Result<Option<Str
 pub async fn set_claude_binary_path(db: State<'_, AgentDb>, path: String) -> Result<(), String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
 
-    // Validate that the path exists and is executable
+    // Validate that the path exists
     let path_buf = std::path::PathBuf::from(&path);
     if !path_buf.exists() {
         return Err(format!("File does not exist: {}", path));
@@ -1859,11 +1859,30 @@ pub async fn set_claude_binary_path(db: State<'_, AgentDb>, path: String) -> Res
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+        
+        // For symlinks, we need to follow the link to check the actual target's permissions
+        // std::fs::metadata() automatically follows symlinks, but let's be explicit about it
         let metadata = std::fs::metadata(&path_buf)
             .map_err(|e| format!("Failed to read file metadata: {}", e))?;
+        
+        // Check if the target (for symlinks) or the file itself is executable
         let permissions = metadata.permissions();
-        if permissions.mode() & 0o111 == 0 {
-            return Err(format!("File is not executable: {}", path));
+        let is_executable = permissions.mode() & 0o111 != 0;
+        
+        if !is_executable {
+            // For symlinks pointing to .js files or other script files, 
+            // the file might not have execute permissions but still be runnable
+            // Let's try to execute it to see if it actually works
+            match std::process::Command::new(&path).arg("--version").output() {
+                Ok(output) if output.status.success() => {
+                    // The file is actually executable even without execute bits
+                    // This is common for Node.js scripts with proper shebang
+                    log::info!("File {} is executable via interpreter", path);
+                }
+                _ => {
+                    return Err(format!("File is not executable: {}. Please ensure the file has execute permissions or can be run via an interpreter.", path));
+                }
+            }
         }
     }
 
@@ -1884,10 +1903,7 @@ pub async fn list_claude_installations(
 ) -> Result<Vec<crate::claude_binary::ClaudeInstallation>, String> {
     let installations = crate::claude_binary::discover_claude_installations();
 
-    if installations.is_empty() {
-        return Err("No Claude Code installations found on the system".to_string());
-    }
-
+    // Return empty list instead of error to allow manual selection
     Ok(installations)
 }
 

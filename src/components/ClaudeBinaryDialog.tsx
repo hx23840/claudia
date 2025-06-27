@@ -58,7 +58,7 @@ export function ClaudeBinaryDialog({ open, onOpenChange, onSuccess, onError }: C
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileQuestion className="w-5 h-5" />
@@ -72,14 +72,14 @@ export function ClaudeBinaryDialog({ open, onOpenChange, onSuccess, onError }: C
               </div>
             ) : hasInstallations ? (
               <p>
-                Multiple Claude Code installations were found on your system. 
-                Please select which one you'd like to use.
+                Claude Code installations were found on your system. 
+                Please select which one you'd like to use, or manually specify a different path.
               </p>
             ) : (
               <>
                 <p>
                   Claude Code was not found in any of the common installation locations. 
-                  Please install Claude Code to continue.
+                  Please manually specify the path to your Claude binary.
                 </p>
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                   <AlertCircle className="w-4 h-4 text-muted-foreground" />
@@ -95,14 +95,14 @@ export function ClaudeBinaryDialog({ open, onOpenChange, onSuccess, onError }: C
                 <Terminal className="w-4 h-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium">Tip:</span> You can install Claude Code using{" "}
-                  <code className="px-1 py-0.5 bg-black/10 dark:bg-white/10 rounded">npm install -g @claude</code>
+                  <code className="px-1 py-0.5 bg-black/10 dark:bg-white/10 rounded">npm install -g @anthropic-ai/claude-cli</code>
                 </p>
               </div>
             )}
           </DialogDescription>
         </DialogHeader>
 
-        {!checkingInstallations && hasInstallations && (
+        {!checkingInstallations && (
           <div className="py-4">
             <ClaudeVersionSelector
               onSelect={(installation) => setSelectedInstallation(installation)}
@@ -114,7 +114,7 @@ export function ClaudeBinaryDialog({ open, onOpenChange, onSuccess, onError }: C
         <DialogFooter className="gap-3">
           <Button
             variant="outline"
-            onClick={() => window.open("https://docs.claude.ai/claude/how-to-install", "_blank")}
+            onClick={() => window.open("https://docs.anthropic.com/claude/docs/claude-cli", "_blank")}
             className="mr-auto"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
@@ -129,9 +129,9 @@ export function ClaudeBinaryDialog({ open, onOpenChange, onSuccess, onError }: C
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={isValidating || !selectedInstallation || !hasInstallations}
+            disabled={isValidating || !selectedInstallation}
           >
-            {isValidating ? "Validating..." : hasInstallations ? "Save Selection" : "No Installations Found"}
+            {isValidating ? "Validating..." : "Save Selection"}
           </Button>
         </DialogFooter>
       </DialogContent>
