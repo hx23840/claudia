@@ -339,14 +339,40 @@ jobs:
 
       # Upload to GitHub Release
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const artifactPath = '${{ steps.find_artifacts.outputs.ARTIFACT_FILE }}';
+            const artifactName = '${{ steps.find_artifacts.outputs.ARTIFACT_NAME }}';
+            const uploadUrl = '${{ needs.create-release.outputs.release_upload_url }}';
+            
+            // Get file extension
+            const ext = path.extname(artifactName);
+            const baseName = '${{ matrix.platform.artifact-name }}';
+            const finalName = `${baseName}${ext}`;
+            
+            console.log(`Uploading ${artifactPath} as ${finalName}`);
+            
+            // Read file content
+            const data = fs.readFileSync(artifactPath);
+            
+            // Upload to release
+            const response = await github.rest.repos.uploadReleaseAsset({
+              url: uploadUrl,
+              headers: {
+                'content-type': 'application/octet-stream',
+                'content-length': data.length,
+              },
+              name: finalName,
+              data: data,
+            });
+            
+            console.log(`✅ Successfully uploaded ${finalName}`);
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find_artifacts.outputs.ARTIFACT_FILE }}
-          asset_name: ${{ matrix.platform.artifact-name }}-${{ needs.create-release.outputs.release_id }}.${{ matrix.platform.artifact-pattern == '*.msi' && 'msi' || matrix.platform.artifact-pattern == '*.dmg' && 'dmg' || 'AppImage' }}
-          asset_content_type: application/octet-stream
 
       # Upload build artifacts for debugging
       - name: Upload build artifacts
