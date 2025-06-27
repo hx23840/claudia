@@ -39,7 +39,14 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
+      "icons/icon.ico",
       "icons/icon.png"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "${APPLE_SIGNING_IDENTITY}",
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": []
+    }
   }
 }

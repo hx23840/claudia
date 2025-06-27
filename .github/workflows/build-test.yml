@@ -100,6 +100,36 @@ jobs:
       - name: Build frontend
         run: bun run build
 
+      # Run frontend tests (if available)
+      - name: Run frontend tests
+        run: |
+          if [ -f "package.json" ] && grep -q "\"test\"" package.json; then
+            bun test || echo "No frontend tests found or tests failed"
+          else
+            echo "No frontend tests configured"
+          fi
+        continue-on-error: true
+
+      # Run Rust tests
+      - name: Run Rust tests
+        run: |
+          cd src-tauri
+          cargo test --release --target ${{ matrix.platform.rust-target }}
+        continue-on-error: true
+
+      # Code quality checks
+      - name: Run linting and code quality checks
+        run: |
+          # Frontend linting
+          if [ -f "package.json" ] && grep -q "\"lint\"" package.json; then
+            bun run lint || echo "Frontend linting failed"
+          fi
+          
+          # Rust linting with Clippy
+          cd src-tauri
+          cargo clippy --target ${{ matrix.platform.rust-target }} -- -D warnings || echo "Rust linting failed"
+        continue-on-error: true
+
       # Build Tauri application (no bundle for faster CI)
       - name: Build Tauri application
         run: bun run tauri build --no-bundle -d

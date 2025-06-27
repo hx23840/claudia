@@ -1,0 +1,74 @@
+name: Updater
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  updater:
+    name: Generate Updater Files
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get release information
+        id: release_info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const release = context.payload.release;
+            const assets = release.assets;
+            
+            // Find platform-specific assets
+            const platforms = {
+              'darwin-x86_64': assets.find(asset => asset.name.includes('macos-intel')),
+              'darwin-aarch64': assets.find(asset => asset.name.includes('macos-apple-silicon')),
+              'linux-x86_64': assets.find(asset => asset.name.includes('linux-x86_64')),
+              'windows-x86_64': assets.find(asset => asset.name.includes('windows-x86_64'))
+            };
+            
+            // Create updater JSON
+            const updaterJson = {
+              version: release.tag_name,
+              notes: release.body || `Release ${release.tag_name}`,
+              pub_date: release.published_at,
+              platforms: {}
+            };
+            
+            // Add platform-specific information
+            for (const [platform, asset] of Object.entries(platforms)) {
+              if (asset) {
+                updaterJson.platforms[platform] = {
+                  signature: "", // Will be filled by Tauri if signing is enabled
+                  url: asset.browser_download_url
+                };
+              }
+            }
+            
+            // Save to file
+            const fs = require('fs');
+            fs.writeFileSync('latest.json', JSON.stringify(updaterJson, null, 2));
+            
+            console.log('Generated updater JSON:', JSON.stringify(updaterJson, null, 2));
+            return updaterJson;
+
+      - name: Upload updater file to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./latest.json
+          asset_name: latest.json
+          asset_content_type: application/json
+
+      - name: Create updater endpoint
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // This could be used to update a separate updater endpoint
+            // For example, uploading to a CDN or updating a database
+            console.log('Updater file created and uploaded to release');
+            console.log('Release URL:', '${{ github.event.release.html_url }}'); 
