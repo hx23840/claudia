@@ -98,12 +98,14 @@ export interface FileEntry {
  * Represents a Claude installation found on the system
  */
 export interface ClaudeInstallation {
-  /** Full path to the Claude binary */
+  /** Full path to the Claude binary (or "claude-code" for sidecar) */
   path: string;
   /** Version string if available */
   version?: string;
-  /** Source of discovery (e.g., "nvm", "system", "homebrew", "which") */
+  /** Source of discovery (e.g., "nvm", "system", "homebrew", "which", "bundled") */
   source: string;
+  /** Type of installation */
+  installation_type: "Bundled" | "System" | "Custom";
 }
 
 // Agent API types
@@ -924,6 +926,21 @@ export const api = {
   },
 
   /**
+   * Loads the JSONL history for a specific agent session
+   * Similar to loadSessionHistory but searches across all project directories
+   * @param sessionId - The session ID (UUID)
+   * @returns Promise resolving to array of session messages
+   */
+  async loadAgentSessionHistory(sessionId: string): Promise<any[]> {
+    try {
+      return await invoke<any[]>('load_agent_session_history', { sessionId });
+    } catch (error) {
+      console.error("Failed to load agent session history:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Executes a new interactive Claude Code session with streaming output
    */
   async executeClaudeCode(projectPath: string, prompt: string, model: string): Promise<void> {
@@ -1481,8 +1498,6 @@ export const api = {
     }
   },
 
-
-
   /**
    * List all available Claude installations on the system
    * @returns Promise resolving to an array of Claude installations
@@ -1495,4 +1510,140 @@ export const api = {
       throw error;
     }
   },
+
+  // Storage API methods
+
+  /**
+   * Lists all tables in the SQLite database
+   * @returns Promise resolving to an array of table information
+   */
+  async storageListTables(): Promise<any[]> {
+    try {
+      return await invoke<any[]>("storage_list_tables");
+    } catch (error) {
+      console.error("Failed to list tables:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Reads table data with pagination
+   * @param tableName - Name of the table to read
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of rows per page
+   * @param searchQuery - Optional search query
+   * @returns Promise resolving to table data with pagination info
+   */
+  async storageReadTable(
+    tableName: string,
+    page: number,
+    pageSize: number,
+    searchQuery?: string
+  ): Promise<any> {
+    try {
+      return await invoke<any>("storage_read_table", {
+        tableName,
+        page,
+        pageSize,
+        searchQuery,
+      });
+    } catch (error) {
+      console.error("Failed to read table:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Updates a row in a table
+   * @param tableName - Name of the table
+   * @param primaryKeyValues - Map of primary key column names to values
+   * @param updates - Map of column names to new values
+   * @returns Promise resolving when the row is updated
+   */
+  async storageUpdateRow(
+    tableName: string,
+    primaryKeyValues: Record<string, any>,
+    updates: Record<string, any>
+  ): Promise<void> {
+    try {
+      return await invoke<void>("storage_update_row", {
+        tableName,
+        primaryKeyValues,
+        updates,
+      });
+    } catch (error) {
+      console.error("Failed to update row:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Deletes a row from a table
+   * @param tableName - Name of the table
+   * @param primaryKeyValues - Map of primary key column names to values
+   * @returns Promise resolving when the row is deleted
+   */
+  async storageDeleteRow(
+    tableName: string,
+    primaryKeyValues: Record<string, any>
+  ): Promise<void> {
+    try {
+      return await invoke<void>("storage_delete_row", {
+        tableName,
+        primaryKeyValues,
+      });
+    } catch (error) {
+      console.error("Failed to delete row:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Inserts a new row into a table
+   * @param tableName - Name of the table
+   * @param values - Map of column names to values
+   * @returns Promise resolving to the last insert row ID
+   */
+  async storageInsertRow(
+    tableName: string,
+    values: Record<string, any>
+  ): Promise<number> {
+    try {
+      return await invoke<number>("storage_insert_row", {
+        tableName,
+        values,
+      });
+    } catch (error) {
+      console.error("Failed to insert row:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Executes a raw SQL query
+   * @param query - SQL query string
+   * @returns Promise resolving to query result
+   */
+  async storageExecuteSql(query: string): Promise<any> {
+    try {
+      return await invoke<any>("storage_execute_sql", { query });
+    } catch (error) {
+      console.error("Failed to execute SQL:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Resets the entire database
+   * @returns Promise resolving when the database is reset
+   */
+  async storageResetDatabase(): Promise<void> {
+    try {
+      return await invoke<void>("storage_reset_database");
+    } catch (error) {
+      console.error("Failed to reset database:", error);
+      throw error;
+    }
+  },
+
 };
