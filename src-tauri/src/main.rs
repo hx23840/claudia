@@ -14,7 +14,7 @@ use commands::agents::{
     get_live_session_output, get_session_output, get_session_status, import_agent,
     import_agent_from_file, import_agent_from_github, init_database, kill_agent_session,
     list_agent_runs, list_agent_runs_with_metrics, list_agents, list_claude_installations,
-    list_running_sessions, set_claude_binary_path, stream_session_output, update_agent, AgentDb,
+    list_running_sessions, load_agent_session_history, set_claude_binary_path, stream_session_output, update_agent, AgentDb,
 };
 use commands::claude::{
     cancel_claude_execution, check_auto_checkpoint, check_claude_version, cleanup_old_checkpoints,
@@ -37,6 +37,10 @@ use commands::mcp::{
 use commands::usage::{
     get_session_stats, get_usage_by_date_range, get_usage_details, get_usage_stats,
 };
+use commands::storage::{
+    storage_list_tables, storage_read_table, storage_update_row, storage_delete_row,
+    storage_insert_row, storage_execute_sql, storage_reset_database,
+};
 use process::ProcessRegistryState;
 use std::sync::Mutex;
 use tauri::Manager;
@@ -48,6 +52,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // Initialize agents database
             let conn = init_database(&app.handle()).expect("Failed to initialize agents database");
@@ -135,6 +140,7 @@ fn main() {
             get_session_output,
             get_live_session_output,
             stream_session_output,
+            load_agent_session_history,
             get_claude_binary_path,
             set_claude_binary_path,
             list_claude_installations,
@@ -160,7 +166,14 @@ fn main() {
             mcp_reset_project_choices,
             mcp_get_server_status,
             mcp_read_project_config,
-            mcp_save_project_config
+            mcp_save_project_config,
+            storage_list_tables,
+            storage_read_table,
+            storage_update_row,
+            storage_delete_row,
+            storage_insert_row,
+            storage_execute_sql,
+            storage_reset_database,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

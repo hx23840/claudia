@@ -18,17 +18,34 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'",
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' ipc: https://ipc.localhost",
       "assetProtocol": {
         "enable": true,
-        "scope": ["**"]
+        "scope": [
+          "**"
+        ]
       }
     }
   },
   "plugins": {
     "fs": {
-      "scope": ["$HOME/**"],
-      "allow": ["readFile", "writeFile", "readDir", "copyFile", "createDir", "removeDir", "removeFile", "renameFile", "exists"]
+      "scope": [
+        "$HOME/**"
+      ],
+      "allow": [
+        "readFile",
+        "writeFile",
+        "readDir",
+        "copyFile",
+        "createDir",
+        "removeDir",
+        "removeFile",
+        "renameFile",
+        "exists"
+      ]
+    },
+    "shell": {
+      "open": true
     }
   },
   "bundle": {
