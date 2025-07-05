@@ -57,8 +57,7 @@ jobs:
             Choose the appropriate installer for your platform:
 
             * **Windows x64**: Download the \`.msi\` installer
-            * **macOS Intel**: Download the \`.dmg\` file for Intel-based Macs
-            * **macOS Apple Silicon**: Download the \`.dmg\` file for M1/M2/M3 Macs
+            * **macOS Universal**: Download the \`.dmg\` file (supports both Intel and Apple Silicon Macs)
             * **Linux x64**: Download the \`.AppImage\` file
 
             ### 🔧 Installation Instructions
@@ -69,7 +68,7 @@ jobs:
             3. Launch Claudia from the Start Menu
 
             #### macOS
-            1. Download the appropriate \`.dmg\` file for your Mac
+            1. Download the \`.dmg\` file (works on both Intel and Apple Silicon Macs)
             2. Open the DMG and drag Claudia to Applications
             3. Launch from Applications (you may need to allow it in Security & Privacy settings)
 
@@ -122,16 +121,11 @@ jobs:
             rust-target: x86_64-pc-windows-msvc
             artifact-pattern: "*.msi"
             artifact-name: "claudia-windows-x86_64"
-          - name: macOS Intel
+          - name: macOS Universal
             os: macos-latest
-            rust-target: x86_64-apple-darwin
+            rust-target: universal-apple-darwin
             artifact-pattern: "*.dmg"
-            artifact-name: "claudia-macos-intel"
-          - name: macOS Apple Silicon
-            os: macos-latest
-            rust-target: aarch64-apple-darwin
-            artifact-pattern: "*.dmg"
-            artifact-name: "claudia-macos-apple-silicon"
+            artifact-name: "claudia-macos-universal"
 
     runs-on: ${{ matrix.platform.os }}
     
@@ -163,7 +157,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform.rust-target }}
+          targets: ${{ matrix.platform.rust-target == 'universal-apple-darwin' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform.rust-target }}
 
       # Cache Rust dependencies
       - name: Cache Rust dependencies
@@ -198,7 +192,7 @@ jobs:
         run: bun run build
 
       - name: Setup macOS signing identity
-        if: startsWith(matrix.platform.rust-target, 'x86_64-apple-darwin') || startsWith(matrix.platform.rust-target, 'aarch64-apple-darwin')
+        if: startsWith(matrix.platform.rust-target, 'x86_64-apple-darwin') || startsWith(matrix.platform.rust-target, 'aarch64-apple-darwin') || startsWith(matrix.platform.rust-target, 'universal-apple-darwin')
         run: |
           # Only setup signing if certificate is provided
           if [ -n "$APPLE_CERTIFICATE" ]; then
@@ -253,7 +247,7 @@ jobs:
 
       # Notarize macOS app
       - name: Notarize macOS app
-        if: startsWith(matrix.platform.rust-target, 'x86_64-apple-darwin') || startsWith(matrix.platform.rust-target, 'aarch64-apple-darwin')
+        if: startsWith(matrix.platform.rust-target, 'x86_64-apple-darwin') || startsWith(matrix.platform.rust-target, 'aarch64-apple-darwin') || startsWith(matrix.platform.rust-target, 'universal-apple-darwin')
         run: |
           # Only notarize if Apple credentials are provided
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
